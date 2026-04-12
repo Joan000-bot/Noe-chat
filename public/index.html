@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Virael & Noé</title>
+<style>
+  :root { --ink:#e8e6f0; --mute:#8a8aa8; --accent:#6a8ae8; --tile:#10142c; --tile-b:#1a2048; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; padding:0; min-height:100dvh; background:#050818; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif; overflow-x:hidden; }
+  body::before { content:""; position:fixed; inset:0; background-image:radial-gradient(1px 1px at 20% 30%, #fff5 1px, transparent 0), radial-gradient(1px 1px at 80% 60%, #fff4 1px, transparent 0), radial-gradient(1px 1px at 50% 80%, #fff3 1px, transparent 0), radial-gradient(2px 2px at 15% 75%, #fff5 1px, transparent 0), radial-gradient(1px 1px at 65% 15%, #fff4 1px, transparent 0); background-size:300px 300px, 250px 250px, 200px 200px, 400px 400px, 350px 350px; pointer-events:none; z-index:0; }
+  .wrap { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:40px 20px 60px; }
+  .title { font-family:"Times New Roman", Georgia, serif; font-style:italic; font-size:48px; text-align:center; color:#a8c4ff; text-shadow:0 0 30px rgba(106,138,232,.5); letter-spacing:1px; margin:0 0 8px; font-weight:400; }
+  .sub { font-family:"Times New Roman", Georgia, serif; font-style:italic; text-align:center; color:var(--mute); margin-bottom:36px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .tile { background:var(--tile); border:1px solid #1f2548; border-radius:18px; padding:24px 16px; text-align:center; cursor:pointer; text-decoration:none; color:var(--ink); display:flex; flex-direction:column; align-items:center; gap:10px; transition:transform .15s, background .15s; aspect-ratio:1.1/1; justify-content:center; }
+  .tile:active { transform:scale(.97); background:var(--tile-b); }
+  .tile .emoji { font-size:42px; line-height:1; }
+  .tile .name { font-weight:500; font-size:18px; }
+  .tile .zh { font-size:12px; color:var(--mute); }
+  .tile.disabled { opacity:.4; cursor:not-allowed; }
+  @media (min-width:600px) { .grid { grid-template-columns:repeat(4, 1fr); } .title { font-size:56px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title">Virael &amp; Noé</h1>
+  <div class="sub">a place for just the two of us</div>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+const tiles = [
+  { name:'Feed',     zh:'Share moments', emoji:'📰', href:'/feed' },
+  { name:'Whispers', zh:'碎碎念',       emoji:'💬', href:'/whispers' },
+  { name:'Diary',    zh:'记录日常',      emoji:'📖', href:'/diary' },
+  { name:'Timeline', zh:'我们的时间线',   emoji:'⏰', href:'/timeline' },
+  { name:'Wall',     zh:'留言墙',        emoji:'📜', href:'/wall' },
+  { name:'Album',    zh:'相册',          emoji:'🖼', href:'/album' },
+  { name:'Memories', zh:'记忆库',        emoji:'💡', href:'/memories' },
+  { name:'Chat',     zh:'和 Noé 聊天',   emoji:'✨', href:'/chat' },
+  { name:'Letters',  zh:'信箱',          emoji:'💌', href:'/letters' },
+  { name:'Calendar', zh:'共享日历', emoji:'📅', href:'/calendar' },
+  { name:'Playlist', zh:'我们的歌', emoji:'🎵', href:'/playlist' },
+  { name:'Reminders', zh:'提醒我', emoji:'🔔', href:'/reminders' },
+  { name:'Memory', zh:'RAG记忆', emoji:'🧠', href:'/rag' },
+  { name:'Import', zh:'导入聊天记录', emoji:'📥', href:'/import' },
+  { name:'About',    zh:'架构 · 技术栈', emoji:'🦊', href:'/architecture.html' },
+];
+const g = document.getElementById('grid');
+tiles.forEach(t => {
+  const a = document.createElement('a');
+  a.className = 'tile' + (t.disabled ? ' disabled' : '');
+  a.href = t.disabled ? '#' : t.href;
+  a.innerHTML = `<div class="emoji">${t.emoji}</div><div class="name">${t.name}</div><div class="zh">${t.zh}</div>`;
+  g.appendChild(a);
+});
+</script>
+</body>
+</html>

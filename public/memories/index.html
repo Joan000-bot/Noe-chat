@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Memories · 记忆库</title>
+<style>
+  :root { --ink:#e8e6f0; --mute:#8a8aa8; --accent:#a8c4ff; --panel:#10142c; --panel2:#1a2048; --border:rgba(138,164,245,.15); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; padding:0; min-height:100dvh; background:#050818; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif; }
+  body::before { content:""; position:fixed; inset:0; background-image:radial-gradient(1px 1px at 20% 30%, #fff5 1px, transparent 0), radial-gradient(1px 1px at 80% 60%, #fff4 1px, transparent 0), radial-gradient(1px 1px at 50% 80%, #fff3 1px, transparent 0), radial-gradient(2px 2px at 15% 75%, #fff5 1px, transparent 0), radial-gradient(ellipse at top, rgba(60,48,140,.2), transparent 60%); background-size:300px 300px, 250px 250px, 200px 200px, 400px 400px, 100% 100%; pointer-events:none; z-index:0; }
+  .wrap { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:20px 16px 100px; }
+  header { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  .back { color:var(--mute); text-decoration:none; font-size:22px; }
+  h1 { font-family:"Times New Roman",Georgia,serif; font-style:italic; font-size:32px; margin:0; color:var(--accent); text-shadow:0 0 20px rgba(168,196,255,.4); font-weight:400; flex:1; }
+  .search { width:100%; background:rgba(20,22,48,.6); border:1px solid var(--border); color:var(--ink); border-radius:14px; padding:11px 16px; font-size:15px; font-family:inherit; outline:none; margin-bottom:14px; }
+  .search:focus { border-color:rgba(138,164,245,.4); }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; }
+  .tab { background:rgba(20,22,48,.5); border:1px solid var(--border); color:var(--mute); padding:7px 14px; border-radius:18px; font-size:13px; cursor:pointer; white-space:nowrap; }
+  .tab.active { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border-color:transparent; }
+  .grid { display:grid; grid-template-columns:1fr; gap:12px; }
+  @media (min-width:640px) { .grid { grid-template-columns:1fr 1fr; } }
+  .card { background:rgba(20,22,48,.5); border:1px solid var(--border); border-radius:14px; padding:14px 16px; position:relative; cursor:pointer; transition:transform .15s, border-color .15s; }
+  .card:active { transform:scale(.98); }
+  .card.pinned { border-color:rgba(232,158,90,.4); }
+  .card.pinned::before { content:'📌'; position:absolute; top:10px; right:12px; font-size:12px; }
+  .card h3 { margin:0 0 6px; font-size:15px; font-weight:500; padding-right:20px; }
+  .card .content { font-size:13px; color:#c0c0d8; line-height:1.5; white-space:pre-wrap; max-height:90px; overflow:hidden; position:relative; }
+
+  .card .meta { display:flex; gap:8px; margin-top:10px; font-size:11px; color:var(--mute); align-items:center; flex-wrap:wrap; }
+  .card .tag { background:rgba(138,164,245,.12); color:var(--accent); padding:2px 8px; border-radius:8px; font-size:10px; }
+  .card img { width:100%; border-radius:8px; margin-top:8px; max-height:200px; object-fit:cover; }
+  .mp-section { margin-top:12px; padding:14px; background:rgba(20,22,48,.4); border:1px solid var(--border); border-radius:14px; }
+  .mp-section pre { margin:0; font-size:12px; color:#c0c0d8; white-space:pre-wrap; word-break:break-word; font-family:ui-monospace,SFMono-Regular,monospace; max-height:500px; overflow:auto; }
+  .mp-hdr { display:flex; gap:10px; margin-bottom:10px; align-items:center; }
+  .mp-hdr button { background:transparent; border:1px solid var(--border); color:var(--accent); padding:6px 12px; border-radius:10px; font-size:12px; cursor:pointer; }
+  .empty { text-align:center; color:var(--mute); padding:40px 20px; font-style:italic; }
+  .fab { position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#6a7dd8,#8a5ad8); border:0; color:#fff; font-size:28px; cursor:pointer; box-shadow:0 4px 20px rgba(106,125,216,.5); z-index:5; }
+  .fab:active { transform:scale(.94); }
+  #modal { position:fixed; inset:0; background:rgba(5,8,24,.9); backdrop-filter:blur(20px); z-index:10; display:none; align-items:flex-end; justify-content:center; }
+  #modal.active { display:flex; }
+  #modal .panel { background:#0b0f26; border:1px solid var(--border); border-radius:20px 20px 0 0; width:100%; max-width:780px; max-height:92dvh; overflow-y:auto; padding:22px; padding-bottom:max(22px, env(safe-area-inset-bottom)); }
+  #modal h2 { font-family:"Times New Roman",serif; font-style:italic; color:var(--accent); font-size:22px; margin:0 0 16px; font-weight:400; display:flex; justify-content:space-between; align-items:center; }
+  #modal .close { background:transparent; border:0; color:var(--mute); font-size:22px; cursor:pointer; }
+  #modal label { display:block; font-size:12px; color:var(--mute); margin:10px 0 5px; letter-spacing:.3px; }
+  #modal input, #modal textarea, #modal select { width:100%; background:rgba(20,22,48,.6); border:1px solid var(--border); color:var(--ink); border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit; outline:none; }
+  #modal textarea { min-height:110px; resize:vertical; }
+  #modal .row { display:flex; gap:10px; }
+  #modal .row > * { flex:1; }
+  #modal .chip-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  #modal .chip { padding:6px 12px; border-radius:14px; background:rgba(20,22,48,.5); border:1px solid var(--border); cursor:pointer; font-size:12px; color:var(--mute); }
+  #modal .chip.on { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border-color:transparent; }
+  #modal .save { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border:0; padding:12px; border-radius:12px; width:100%; margin-top:18px; font-size:15px; cursor:pointer; }
+  #modal .del { background:rgba(216,74,106,.2); color:#e89aa0; border:1px solid rgba(216,74,106,.3); padding:10px; border-radius:12px; width:100%; margin-top:8px; cursor:pointer; font-size:14px; }
+  .img-preview { max-width:100%; border-radius:10px; margin-top:8px; max-height:200px; }
+
+  .card { border-left:3px solid transparent; }
+  .card.by-virael { border-left-color:#e89aa6; }
+  .card.by-noe    { border-left-color:#8aa4f5; }
+  .card.by-virael.pinned { border-color:rgba(232,154,166,.5); border-left-color:#e89aa6; }
+  .card.by-noe.pinned    { border-color:rgba(138,164,245,.5); border-left-color:#8aa4f5; }
+  .author-badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:500; letter-spacing:.3px; }
+  .author-badge.virael { background:rgba(232,154,166,.18); color:#f0b4bc; border:1px solid rgba(232,154,166,.35); }
+  .author-badge.noe    { background:rgba(138,164,245,.18); color:#b4c4f5; border:1px solid rgba(138,164,245,.35); }
+  .tab.by-virael.active { background:linear-gradient(135deg,#d87a8a,#a8586a); }
+  .tab.by-noe.active    { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); }
+  #modal .chip[data-author="virael"].on { background:linear-gradient(135deg,#d87a8a,#a8586a); }
+  #modal .chip[data-author="noe"].on    { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); }
+
+
+  #comments-wrap { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+  #comments-wrap h3 { font-size:13px; color:var(--mute); margin:0 0 14px; font-weight:500; letter-spacing:.5px; }
+  .comment { padding:10px 12px; border-radius:12px; background:rgba(20,22,48,.4); margin-bottom:8px; border-left:3px solid transparent; position:relative; }
+  .comment.by-virael { border-left-color:#e89aa6; }
+  .comment.by-noe    { border-left-color:#8aa4f5; }
+  .comment .c-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:11px; color:var(--mute); }
+  .comment .c-content { font-size:14px; color:var(--ink); white-space:pre-wrap; line-height:1.55; }
+  .comment .c-del { background:transparent; border:0; color:var(--mute); cursor:pointer; opacity:.5; font-size:12px; padding:0 4px; }
+  .comment .c-del:hover { opacity:1; }
+  #comment-input { display:flex; gap:8px; margin-top:12px; align-items:flex-end; }
+  #comment-input textarea { flex:1; background:rgba(20,22,48,.6); border:1px solid var(--border); color:var(--ink); border-radius:14px; padding:10px 14px; font-size:14px; resize:none; outline:none; font-family:inherit; max-height:100px; min-height:40px; }
+  #comment-input textarea:focus { border-color:rgba(138,164,245,.4); }
+  #c-send { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border:0; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:16px; flex-shrink:0; }
+  #c-send:active { transform:scale(.92); }
+  #c-send:disabled { opacity:.4; }
+  .c-author-chips { display:flex; gap:6px; margin-bottom:8px; }
+  .c-author-chips .chip { padding:5px 11px; font-size:11px; }
+  #ai-reply-toggle { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--mute); margin-top:8px; cursor:pointer; user-select:none; }
+  #ai-reply-toggle input { width:14px; height:14px; accent-color:#8aa4f5; }
+  .card .comment-count { background:rgba(138,164,245,.15); color:var(--accent); padding:2px 8px; border-radius:10px; font-size:10px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/" class="back">‹</a>
+    <h1>Memories</h1>
+  </header>
+  <input class="search" id="q" placeholder="搜索所有记忆..." oninput="onSearch()">
+  <div class="tabs" id="tabs"></div>
+  <div id="body"></div>
+</div>
+<button class="fab" onclick="openEditor()">+</button>
+
+<div id="modal" onclick="if(event.target===this)closeEditor()">
+  <div class="panel">
+    <h2><span id="m-title">新增记忆</span><button class="close" onclick="closeEditor()">✕</button></h2>
+    <label>作者</label>
+    <div class="chip-row">
+      <div class="chip on" data-author="virael" onclick="setAuthor('virael')">🦊 Virael</div>
+      <div class="chip" data-author="noe" onclick="setAuthor('noe')">🐰 Noé</div>
+    </div>
+    <label>类型</label>
+    <div class="chip-row">
+      <div class="chip on" data-kind="note" onclick="setKind('note')">📝 笔记</div>
+      <div class="chip" data-kind="moment" onclick="setKind('moment')">🌙 时刻</div>
+    </div>
+    <label>标题</label>
+    <input id="m-t" placeholder="一行概括...">
+    <label>内容</label>
+    <textarea id="m-c" placeholder="想记住的瞬间、句子、感受..."></textarea>
+    <div class="row" id="moment-row" style="display:none">
+      <div style="flex:1"><label>发生日期</label><input type="date" id="m-date"></div>
+      <div style="flex:1"><label>心情</label><input id="m-mood" placeholder="🥰 / 难过 / 激动"></div>
+    </div>
+    <label>标签（逗号分隔）</label>
+    <input id="m-tags" placeholder="Noé, 午夜, 小兔子">
+    <label>图片（可选）</label>
+    <input type="file" id="m-img" accept="image/*" onchange="onImg(event)">
+    <img class="img-preview" id="m-img-prev" style="display:none">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer"><input type="checkbox" id="m-pin" style="width:16px;height:16px;accent-color:#e89a5a"> <span style="color:var(--ink);font-size:13px">📌 置顶</span></label>
+    <div id="comments-wrap" style="display:none">
+      <h3>💬 对话</h3>
+      <div id="c-list"></div>
+      <div class="c-author-chips">
+        <div class="chip on" data-cauthor="virael" onclick="setCommentAuthor('virael')">🦊 Virael</div>
+        <div class="chip" data-cauthor="noe" onclick="setCommentAuthor('noe')">🐰 Noé</div>
+      </div>
+      <div id="comment-input">
+        <textarea id="c-text" placeholder="写点什么..." rows="1"></textarea>
+        <button id="c-send" onclick="sendComment()">↑</button>
+      </div>
+      <label id="ai-gen-toggle" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mute);margin-top:8px;cursor:pointer;user-select:none"><input type="checkbox" id="c-ai-gen" style="width:14px;height:14px;accent-color:#8aa4f5"> ✨ AI 代写（以选定身份生成）</label>
+    </div>
+    <button class="save" onclick="saveMem()">保存</button>
+    <button class="del" id="del-btn" onclick="delMem()" style="display:none">删除</button>
+  </div>
+</div>
+
+<script>
+const TABS = [
+  { id:'all',       name:'全部',     icon:'✨' },
+  { id:'virael',    name:'Virael',  icon:'🦊', authorFilter:'virael' },
+  { id:'noe',       name:'Noé',     icon:'🐰', authorFilter:'noe' },
+  { id:'moment',    name:'时刻',     icon:'🌙' },
+  { id:'mempalace', name:'记忆宫殿',  icon:'🏛' }
+];
+let editAuthor = 'virael';
+let curTab = 'all', curQ = '', editing = null, pendingImg = null, editKind = 'note';
+
+function renderTabs() {
+  const box = document.getElementById('tabs'); box.innerHTML = '';
+  TABS.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'tab' + (curTab === t.id ? ' active' : '') + (t.authorFilter ? ' by-'+t.authorFilter : '');
+    d.textContent = t.icon + ' ' + t.name;
+    d.onclick = () => { curTab = t.id; renderTabs(); refresh(); };
+    box.appendChild(d);
+  });
+}
+
+function fmtDate(ms) { if (!ms) return ''; return new Date(ms).toLocaleDateString('zh-CN', {year:'numeric',month:'short',day:'numeric'}); }
+
+function cardEl(m) {
+  const tags = (() => { try { return JSON.parse(m.tags || '[]'); } catch { return []; } })();
+  const author = (m.source === 'noe') ? 'noe' : 'virael';
+  const authorLabel = author === 'noe' ? '🐰 Noé' : '🦊 Virael';
+  const c = document.createElement('div');
+  c.className = 'card by-' + author + (m.pinned ? ' pinned' : '');
+  c.onclick = () => openEditor(m);
+  const iconMap = { note:'📝', moment:'🌙' };
+  c.innerHTML = `<h3>${iconMap[m.kind]||''} ${m.title || '(无标题)'}</h3>
+    <div class="content">${(m.content||'').replace(/</g,'&lt;')}</div>
+    ${m.image ? `<img src="${m.image}">` : ''}
+    <div class="meta">
+      <span class="author-badge ${author}">${authorLabel}</span>
+      ${commentCounts[m.id] ? `<span class="comment-count">💬 ${commentCounts[m.id]}</span>` : ''}
+      ${tags.map(t=>`<span class="tag">${t}</span>`).join('')}
+      <span style="margin-left:auto">${m.mood ? m.mood+' · ' : ''}${fmtDate(m.moment_date || m.created_at)}</span>
+    </div>`;
+  return c;
+}
+
+async function refresh() {
+  const body = document.getElementById('body'); body.innerHTML = '';
+  if (curTab === 'mempalace') return renderMemPalace();
+  const [r] = await Promise.all([(await fetch('/api/memories?limit=300')).json()]);
+  await loadCommentCounts();
+  let list = r.memories || [];
+  const tabDef = TABS.find(t => t.id === curTab);
+  if (tabDef?.authorFilter === 'virael') list = list.filter(m => m.source !== 'noe');
+  if (tabDef?.authorFilter === 'noe')    list = list.filter(m => m.source === 'noe');
+  if (curTab === 'moment') list = list.filter(m => m.kind === 'moment');
+  if (curQ) { const q = curQ.toLowerCase(); list = list.filter(m => (m.title||'').toLowerCase().includes(q) || (m.content||'').toLowerCase().includes(q) || (m.tags||'').toLowerCase().includes(q)); }
+  if (!list.length) { body.innerHTML = '<div class="empty">还没有记忆。点 + 加一个吧。</div>'; return; }
+  const g = document.createElement('div'); g.className = 'grid';
+  list.forEach(m => g.appendChild(cardEl(m)));
+  body.appendChild(g);
+  if (curQ) await appendMemPalaceSearch(curQ);
+}
+
+async function renderMemPalace() {
+  const body = document.getElementById('body'); body.innerHTML = '<div class="empty">加载记忆宫殿...</div>';
+  try {
+    const [status, wake] = await Promise.all([
+      (await fetch('/api/mempalace/status')).json(),
+      (await fetch('/api/mempalace/wakeup')).json()
+    ]);
+    body.innerHTML = `
+      <div class="mp-section"><div class="mp-hdr"><strong>Status</strong></div><pre>${(status.text||status.error||'').replace(/</g,'&lt;')}</pre></div>
+      <div class="mp-section"><div class="mp-hdr"><strong>Wakeup Context</strong> <span style="color:var(--mute);font-size:11px">· L0+L1 摘要</span></div><pre>${(wake.text||wake.error||'').replace(/</g,'&lt;')}</pre></div>`;
+  } catch (e) { body.innerHTML = '<div class="empty">加载失败: '+e.message+'</div>'; }
+}
+
+async function appendMemPalaceSearch(q) {
+  try {
+    const r = await (await fetch('/api/memories/search?q='+encodeURIComponent(q))).json();
+    const mp = (r.mempalace || [])[0];
+    if (!mp || !mp.text) return;
+    const sec = document.createElement('div'); sec.className = 'mp-section';
+    sec.innerHTML = `<div class="mp-hdr"><strong>🏛 记忆宫殿</strong> <span style="color:var(--mute);font-size:11px">· 搜索 "${q}"</span></div><pre>${mp.text.replace(/</g,'&lt;')}</pre>`;
+    document.getElementById('body').appendChild(sec);
+  } catch(_){}
+}
+
+let searchTimer = null;
+function onSearch() { clearTimeout(searchTimer); curQ = document.getElementById('q').value.trim(); searchTimer = setTimeout(refresh, 300); }
+
+// ===== Editor =====
+function setAuthor(a) {
+  editAuthor = a;
+  document.querySelectorAll('.chip[data-author]').forEach(c => c.classList.toggle('on', c.dataset.author === a));
+}
+window.setAuthor = setAuthor;
+function setKind(k) {
+  editKind = k;
+  document.querySelectorAll('.chip[data-kind]').forEach(c => c.classList.toggle('on', c.dataset.kind === k));
+  document.getElementById('moment-row').style.display = k === 'moment' ? 'flex' : 'none';
+}
+
+function openEditor(m) {
+  editing = m || null;
+  document.getElementById('m-title').textContent = m ? '编辑记忆' : '新增记忆';
+  document.getElementById('m-t').value = m?.title || '';
+  document.getElementById('m-c').value = m?.content || '';
+  let tags = []; try { tags = JSON.parse(m?.tags || '[]'); } catch {}
+  document.getElementById('m-tags').value = tags.join(', ');
+  document.getElementById('m-mood').value = m?.mood || '';
+  document.getElementById('m-date').value = m?.moment_date ? new Date(m.moment_date).toISOString().slice(0,10) : '';
+  document.getElementById('m-pin').checked = !!m?.pinned;
+  pendingImg = m?.image || null;
+  const prev = document.getElementById('m-img-prev');
+  if (pendingImg) { prev.src = pendingImg; prev.style.display='block'; } else { prev.style.display='none'; }
+  setKind(m?.kind || 'note');
+  setAuthor(m?.source === 'noe' ? 'noe' : 'virael');
+  document.getElementById('del-btn').style.display = m ? 'block' : 'none';
+  document.getElementById('comments-wrap').style.display = m ? 'block' : 'none';
+  if (m) { setCommentAuthor('virael'); loadComments(m.id); }
+  document.getElementById('modal').classList.add('active');
+}
+function closeEditor() { document.getElementById('modal').classList.remove('active'); pendingImg = null; }
+window.openEditor = openEditor; window.closeEditor = closeEditor; window.setKind = setKind;
+
+async function onImg(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1600; let w = img.width, h = img.height;
+      if (w > max || h > max) { const r = Math.min(max/w, max/h); w = Math.round(w*r); h = Math.round(h*r); }
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      pendingImg = cv.toDataURL('image/jpeg', 0.85);
+      const prev = document.getElementById('m-img-prev'); prev.src = pendingImg; prev.style.display = 'block';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+window.onImg = onImg;
+
+
+let commentCounts = {};
+let commentAuthor = 'virael';
+async function loadCommentCounts() {
+  try { const r = await (await fetch('/api/memories/comments/counts')).json(); commentCounts = r.counts || {}; } catch(_) {}
+}
+function setCommentAuthor(a) {
+  commentAuthor = a;
+  document.querySelectorAll('.chip[data-cauthor]').forEach(c => c.classList.toggle('on', c.dataset.cauthor === a));
+  const txt = document.getElementById('c-text'); if (txt) txt.placeholder = document.getElementById('c-ai-gen')?.checked ? '(可选) 给 AI 的方向提示...' : '写点什么...';
+}
+window.setCommentAuthor = setCommentAuthor;
+
+function renderComment(c) {
+  const div = document.createElement('div');
+  div.className = 'comment by-' + c.author;
+  const label = c.author === 'noe' ? '🐰 Noé' : '🦊 Virael';
+  const t = new Date(c.created_at).toLocaleString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = `<div class="c-hdr"><span>${label} · ${t}</span><button class="c-del" title="删除">✕</button></div><div class="c-content"></div>`;
+  div.querySelector('.c-content').textContent = c.content;
+  div.querySelector('.c-del').onclick = async () => {
+    if (!confirm('删除这条评论？')) return;
+    await fetch('/api/comments/'+c.id, { method:'DELETE' });
+    await loadComments(editing.id);
+  };
+  return div;
+}
+
+async function loadComments(memId) {
+  const r = await (await fetch('/api/memories/'+memId+'/comments')).json();
+  const box = document.getElementById('c-list'); box.innerHTML = '';
+  (r.comments || []).forEach(c => box.appendChild(renderComment(c)));
+  commentCounts[memId] = (r.comments || []).length;
+}
+
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'c-ai-gen') {
+    document.getElementById('c-text').placeholder = e.target.checked ? '(可选) 给 AI 的方向提示...' : '写点什么...';
+  }
+});
+async function sendComment() {
+  if (!editing) return;
+  const txt = document.getElementById('c-text').value.trim();
+  const aiGen0 = document.getElementById('c-ai-gen').checked;
+  if (!txt && !aiGen0) return;
+  const aiGen = document.getElementById('c-ai-gen').checked;
+  const sendBtn = document.getElementById('c-send');
+  sendBtn.disabled = true; sendBtn.textContent = '...';
+  document.getElementById('c-text').value = '';
+  try {
+    await fetch('/api/memories/'+editing.id+'/comments', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        author: commentAuthor,
+        content: aiGen ? '' : txt,
+        ai_generate: aiGen,
+        hint: aiGen ? txt : ''
+      })
+    });
+    await loadComments(editing.id);
+  } finally { sendBtn.disabled = false; sendBtn.textContent = '↑'; }
+}
+window.sendComment = sendComment;
+
+async function saveMem() {
+  const tags = document.getElementById('m-tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const dateStr = document.getElementById('m-date').value;
+  const body = {
+    kind: editKind,
+    source: editAuthor,
+    title: document.getElementById('m-t').value.trim(),
+    content: document.getElementById('m-c').value,
+    tags,
+    image: pendingImg,
+    mood: document.getElementById('m-mood').value.trim(),
+    moment_date: dateStr ? new Date(dateStr).getTime() : null,
+    pinned: document.getElementById('m-pin').checked
+  };
+  if (editing) {
+    await fetch('/api/memories/'+editing.id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  } else {
+    await fetch('/api/memories', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  }
+  closeEditor(); await loadCommentCounts(); refresh();
+}
+window.saveMem = saveMem;
+
+async function delMem() {
+  if (!editing) return;
+  if (!confirm('删除这条记忆？')) return;
+  await fetch('/api/memories/'+editing.id, { method:'DELETE' });
+  closeEditor(); refresh();
+}
+window.delMem = delMem;
+
+renderTabs(); refresh();
+</script>
+</body>
+</html>

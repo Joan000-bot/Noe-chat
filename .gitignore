@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Database (contains personal data)
+*.db
+*.db-journal
+*.sqlite
+
+# Environment & secrets
+.env
+.tg-chat-id
+*.key
+*.pem
+
+# Backup files
+*.backup
+*.bak
+
+# Patch files (development artifacts)
+patch-*.js
+add-*.js
+
+# Personal settings
+settings.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Uploaded content
+public/uploads/*
+!public/uploads/.gitkeep
+# Also ignore backup files in public
+public/*.bak*

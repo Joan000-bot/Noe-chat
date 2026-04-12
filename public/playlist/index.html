@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎵 共享歌单</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .container { max-width: 700px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    h1 { font-size: 1.6em; }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #fff;
+      text-decoration: none;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-card .number { font-size: 1.8em; font-weight: bold; }
+    .stat-card .label { font-size: 0.85em; color: #888; margin-top: 5px; }
+    
+    .random-pick {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 25px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .random-pick:hover { transform: scale(1.02); }
+    .random-pick .title { font-size: 1.3em; font-weight: 500; }
+    .random-pick .artist { opacity: 0.8; margin-top: 5px; }
+    .random-pick .hint { font-size: 0.85em; opacity: 0.7; margin-top: 10px; }
+    
+    .section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .section h2 { font-size: 1.1em; margin-bottom: 15px; }
+    
+    .add-form {
+      display: grid;
+      gap: 12px;
+    }
+    .add-form input, .add-form select {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .form-row { display: flex; gap: 12px; }
+    .form-row > * { flex: 1; }
+    .add-form button {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .song-list { display: flex; flex-direction: column; gap: 10px; }
+    .song-item {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .song-item .platform-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3em;
+    }
+    .song-item .platform-icon.spotify { background: #1DB954; }
+    .song-item .platform-icon.youtube { background: #FF0000; }
+    .song-item .platform-icon.apple { background: #FC3C44; }
+    .song-item .platform-icon.netease { background: #C20C0C; }
+    .song-item .platform-icon.qqmusic { background: #31C27C; }
+    .song-item .platform-icon.unknown { background: #666; }
+    .song-item .info { flex: 1; }
+    .song-item .title { font-weight: 500; }
+    .song-item .meta { font-size: 0.85em; color: #888; margin-top: 3px; }
+    .song-item .added-by {
+      font-size: 0.75em;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+    }
+    .song-item .added-by.virael { background: rgba(255,107,107,0.3); }
+    .song-item .added-by.noe { background: rgba(102,126,234,0.3); }
+    .song-item .actions { display: flex; gap: 8px; }
+    .song-item .actions button {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .song-item .actions button.danger { background: rgba(255,100,100,0.3); }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .filter-tabs button {
+      background: rgba(255,255,255,0.05);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: #888;
+      cursor: pointer;
+    }
+    .filter-tabs button.active {
+      background: rgba(102,126,234,0.3);
+      color: #fff;
+    }
+    
+    .empty { text-align: center; color: #666; padding: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎵 我们的歌单</h1>
+      <a href="/" class="back-btn">← 返回</a>
+    </header>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="number" id="totalSongs">-</div>
+        <div class="label">共同收藏</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="viraelSongs">-</div>
+        <div class="label">Virael 添加</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="noeSongs">-</div>
+        <div class="label">Noé 添加</div>
+      </div>
+    </div>
+    
+    <div class="random-pick" onclick="pickRandom()">
+      <div class="title" id="randomTitle">点击随机推荐</div>
+      <div class="artist" id="randomArtist"></div>
+      <div class="hint">🎲 再点一次换一首</div>
+    </div>
+    
+    <div class="section">
+      <h2>➕ 添加歌曲</h2>
+      <div class="add-form">
+        <input type="text" id="songTitle" placeholder="歌名">
+        <div class="form-row">
+          <input type="text" id="songArtist" placeholder="歌手">
+          <select id="songAddedBy">
+            <option value="virael">Virael 添加</option>
+            <option value="noe">Noé 添加</option>
+          </select>
+        </div>
+        <input type="text" id="songUrl" placeholder="链接（Spotify/网易/QQ/YouTube）">
+        <input type="text" id="songNote" placeholder="备注，比如「那天晚上听的」">
+        <button onclick="addSong()">添加到歌单</button>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>🎶 歌单</h2>
+      <div class="filter-tabs">
+        <button class="active" onclick="filterSongs('all')">全部</button>
+        <button onclick="filterSongs('virael')">Virael</button>
+        <button onclick="filterSongs('noe')">Noé</button>
+      </div>
+      <div class="song-list" id="songList"></div>
+    </div>
+  </div>
+  
+  <script>
+    const platformIcons = {
+      spotify: '🟢',
+      youtube: '▶️',
+      apple: '🍎',
+      netease: '🎵',
+      qqmusic: '🎧',
+      unknown: '🎶'
+    };
+    
+    let allSongs = [];
+    let currentFilter = 'all';
+    
+    async function loadStats() {
+      const res = await fetch('/api/playlist/stats');
+      const data = await res.json();
+      document.getElementById('totalSongs').textContent = data.total || 0;
+      document.getElementById('viraelSongs').textContent = data.byVirael || 0;
+      document.getElementById('noeSongs').textContent = data.byNoe || 0;
+    }
+    
+    async function loadSongs() {
+      const res = await fetch('/api/playlist');
+      allSongs = await res.json();
+      renderSongs();
+    }
+    
+    function renderSongs() {
+      const container = document.getElementById('songList');
+      let songs = allSongs;
+      
+      if (currentFilter !== 'all') {
+        songs = songs.filter(s => s.added_by === currentFilter);
+      }
+      
+      if (!songs.length) {
+        container.innerHTML = '<div class="empty">还没有歌 ⩌ᴗ⩌</div>';
+        return;
+      }
+      
+      container.innerHTML = songs.map(s => `
+        <div class="song-item">
+          <div class="platform-icon ${s.platform}">${platformIcons[s.platform] || '🎶'}</div>
+          <div class="info">
+            <div class="title">${s.title}</div>
+            <div class="meta">${s.artist || '未知歌手'}${s.note ? ' · ' + s.note : ''}</div>
+          </div>
+          <span class="added-by ${s.added_by}">${s.added_by === 'virael' ? '🦊' : '🐱'}</span>
+          <div class="actions">
+            ${s.url ? `<button onclick="window.open('${s.url}')">播放</button>` : ''}
+            <button class="danger" onclick="deleteSong(${s.id})">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function filterSongs(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tabs button').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderSongs();
+    }
+    
+    async function pickRandom() {
+      const res = await fetch('/api/playlist/random');
+      const song = await res.json();
+      if (song) {
+        document.getElementById('randomTitle').textContent = song.title;
+        document.getElementById('randomArtist').textContent = song.artist || '';
+      }
+    }
+    
+    async function addSong() {
+      const title = document.getElementById('songTitle').value.trim();
+      const artist = document.getElementById('songArtist').value.trim();
+      const url = document.getElementById('songUrl').value.trim();
+      const note = document.getElementById('songNote').value.trim();
+      const addedBy = document.getElementById('songAddedBy').value;
+      
+      if (!title) return alert('请填写歌名');
+      
+      await fetch('/api/playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, artist, url, note, addedBy })
+      });
+      
+      document.getElementById('songTitle').value = '';
+      document.getElementById('songArtist').value = '';
+      document.getElementById('songUrl').value = '';
+      document.getElementById('songNote').value = '';
+      
+      loadStats();
+      loadSongs();
+    }
+    
+    async function deleteSong(id) {
+      if (!confirm('确定删除？')) return;
+      await fetch(`/api/playlist/${id}`, { method: 'DELETE' });
+      loadStats();
+      loadSongs();
+    }
+    
+    loadStats();
+    loadSongs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📅 共享日历</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    h1 { font-size: 1.6em; }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .countdown-banner {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .countdown-banner .days { font-size: 3em; font-weight: bold; }
+    .countdown-banner .label { font-size: 1.1em; opacity: 0.9; margin-top: 5px; }
+    
+    .month-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .month-nav button {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+    .month-nav .current { font-size: 1.3em; font-weight: 500; }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-bottom: 25px;
+    }
+    .calendar-grid .header {
+      text-align: center;
+      padding: 10px;
+      font-size: 0.85em;
+      color: #888;
+    }
+    .calendar-grid .day {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .calendar-grid .day:hover { background: rgba(255,255,255,0.08); }
+    .calendar-grid .day.today {
+      background: rgba(102,126,234,0.3);
+      border: 2px solid #667eea;
+    }
+    .calendar-grid .day.other-month { opacity: 0.3; }
+    .calendar-grid .day .date { font-size: 0.9em; }
+    .calendar-grid .day .events {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      right: 5px;
+      display: flex;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .calendar-grid .day .event-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #667eea;
+    }
+    
+    .section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .section h2 { font-size: 1.1em; margin-bottom: 15px; }
+    
+    .event-list { display: flex; flex-direction: column; gap: 10px; }
+    .event-item {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #667eea;
+    }
+    .event-item .info { flex: 1; }
+    .event-item .title { font-weight: 500; }
+    .event-item .time { font-size: 0.85em; color: #888; margin-top: 3px; }
+    .event-item button {
+      background: rgba(255,100,100,0.3);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .add-form {
+      display: grid;
+      gap: 12px;
+    }
+    .add-form input, .add-form select {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .form-row { display: flex; gap: 12px; }
+    .form-row > * { flex: 1; }
+    .add-form button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .empty { text-align: center; color: #666; padding: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📅 我们的日历</h1>
+      <a href="/" class="back-btn">← 返回</a>
+    </header>
+    
+    <div class="countdown-banner">
+      <div class="days" id="countdown">--</div>
+      <div class="label">距离纪念日 (7.28) 还有</div>
+    </div>
+    
+    <div class="month-nav">
+      <button onclick="prevMonth()">‹</button>
+      <span class="current" id="monthLabel"></span>
+      <button onclick="nextMonth()">›</button>
+    </div>
+    
+    <div class="calendar-grid" id="calendarGrid"></div>
+    
+    <div class="section">
+      <h2>📌 即将到来</h2>
+      <div class="event-list" id="upcomingEvents"></div>
+    </div>
+    
+    <div class="section">
+      <h2>➕ 添加约定</h2>
+      <div class="add-form">
+        <input type="text" id="eventTitle" placeholder="标题...">
+        <div class="form-row">
+          <input type="date" id="eventDate">
+          <input type="time" id="eventTime">
+        </div>
+        <input type="text" id="eventDesc" placeholder="备注（可选）">
+        <button onclick="addEvent()">添加</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let currentYear, currentMonth;
+    const today = new Date();
+    currentYear = today.getFullYear();
+    currentMonth = today.getMonth() + 1;
+    
+    const monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+    const dayNames = ['日','一','二','三','四','五','六'];
+    
+    async function loadCountdown() {
+      const res = await fetch('/api/calendar/countdown/7/28');
+      const data = await res.json();
+      document.getElementById('countdown').textContent = data.days + ' 天';
+    }
+    
+    async function renderCalendar() {
+      document.getElementById('monthLabel').textContent = `${currentYear}年 ${monthNames[currentMonth-1]}`;
+      
+      const res = await fetch(`/api/calendar/month/${currentYear}/${currentMonth}`);
+      const events = await res.json();
+      
+      const firstDay = new Date(currentYear, currentMonth - 1, 1);
+      const lastDay = new Date(currentYear, currentMonth, 0);
+      const startOffset = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+      
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = dayNames.map(d => `<div class="header">${d}</div>`).join('');
+      
+      // 上月填充
+      const prevMonthDays = new Date(currentYear, currentMonth - 1, 0).getDate();
+      for (let i = startOffset - 1; i >= 0; i--) {
+        grid.innerHTML += `<div class="day other-month"><span class="date">${prevMonthDays - i}</span></div>`;
+      }
+      
+      // 本月
+      for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = d === today.getDate() && currentMonth === today.getMonth() + 1 && currentYear === today.getFullYear();
+        const dayEvents = events.filter(e => {
+          const ed = new Date(e.start_time);
+          return ed.getDate() === d;
+        });
+        
+        grid.innerHTML += `
+          <div class="day ${isToday ? 'today' : ''}" onclick="selectDay(${d})">
+            <span class="date">${d}</span>
+            <div class="events">
+              ${dayEvents.map(e => `<div class="event-dot" style="background:${e.color}"></div>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 下月填充
+      const remaining = 42 - (startOffset + daysInMonth);
+      for (let i = 1; i <= remaining; i++) {
+        grid.innerHTML += `<div class="day other-month"><span class="date">${i}</span></div>`;
+      }
+    }
+    
+    async function loadUpcoming() {
+      const res = await fetch('/api/calendar/upcoming?days=30');
+      const events = await res.json();
+      const container = document.getElementById('upcomingEvents');
+      
+      if (!events.length) {
+        container.innerHTML = '<div class="empty">还没有约定 ⩌ᴗ⩌</div>';
+        return;
+      }
+      
+      container.innerHTML = events.map(e => {
+        const d = new Date(e.start_time);
+        const timeStr = e.all_day ? '全天' : d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="event-item" style="border-color:${e.color}">
+            <div class="info">
+              <div class="title">${e.title}</div>
+              <div class="time">${d.toLocaleDateString('zh-CN')} ${timeStr}</div>
+            </div>
+            <button onclick="deleteEvent(${e.id})">删除</button>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function prevMonth() {
+      currentMonth--;
+      if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+      renderCalendar();
+    }
+    
+    function nextMonth() {
+      currentMonth++;
+      if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+      renderCalendar();
+    }
+    
+    function selectDay(day) {
+      document.getElementById('eventDate').value = `${currentYear}-${String(currentMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+    
+    async function addEvent() {
+      const title = document.getElementById('eventTitle').value.trim();
+      const date = document.getElementById('eventDate').value;
+      const time = document.getElementById('eventTime').value;
+      const desc = document.getElementById('eventDesc').value.trim();
+      
+      if (!title || !date) return alert('请填写标题和日期');
+      
+      const startTime = new Date(`${date}T${time || '09:00'}`).getTime();
+      
+      await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, startTime, description: desc, allDay: !time })
+      });
+      
+      document.getElementById('eventTitle').value = '';
+      document.getElementById('eventDesc').value = '';
+      renderCalendar();
+      loadUpcoming();
+    }
+    
+    async function deleteEvent(id) {
+      if (!confirm('确定删除？')) return;
+      await fetch(`/api/calendar/${id}`, { method: 'DELETE' });
+      renderCalendar();
+      loadUpcoming();
+    }
+    
+    loadCountdown();
+    renderCalendar();
+    loadUpcoming();
+  </script>
+</body>
+</html>

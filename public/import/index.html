@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导入聊天记录 - Noé</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 24px; }
+    
+    .formats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .format-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .format-card:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+    .format-card.active { border-color: #818cf8; background: rgba(129,140,248,0.15); }
+    .format-card .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .format-card .name { font-size: 0.85rem; font-weight: 500; }
+    .format-card .desc { font-size: 0.7rem; color: #888; margin-top: 4px; }
+    
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+    .upload-area:hover { border-color: #818cf8; background: rgba(129,140,248,0.05); }
+    .upload-area.dragover { border-color: #818cf8; background: rgba(129,140,248,0.1); }
+    .upload-area .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .upload-area p { color: #888; font-size: 0.9rem; }
+    .upload-area input { display: none; }
+    
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      color: #e0e0e0;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.8rem;
+      resize: vertical;
+      margin-bottom: 16px;
+    }
+    textarea:focus { outline: none; border-color: #818cf8; }
+    textarea::placeholder { color: #666; }
+    
+    .options {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .options label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .options input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #818cf8;
+    }
+    .options input[type="text"] {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      width: 150px;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    
+    .preview {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .preview h3 { font-size: 0.9rem; color: #818cf8; margin-bottom: 12px; }
+    .preview-msg {
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .preview-msg.user { background: rgba(129,140,248,0.2); margin-left: 40px; }
+    .preview-msg.assistant { background: rgba(255,255,255,0.05); margin-right: 40px; }
+    .preview-msg .meta { font-size: 0.7rem; color: #888; margin-top: 4px; }
+    
+    .result {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .result.error {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+    }
+    .result .icon { font-size: 2rem; margin-bottom: 8px; }
+    
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 12px;
+    }
+    .stat { text-align: center; }
+    .stat .num { font-size: 1.5rem; font-weight: bold; color: #818cf8; }
+    .stat .label { font-size: 0.75rem; color: #888; }
+    
+    .help {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .help h4 { color: #aaa; margin-bottom: 8px; }
+    .help code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📥 导入聊天记录</h1>
+    <p class="subtitle">从其他平台导入对话到 Noé</p>
+    
+    <div class="formats">
+      <div class="format-card active" data-format="auto">
+        <div class="icon">🔮</div>
+        <div class="name">自动检测</div>
+        <div class="desc">智能识别格式</div>
+      </div>
+      <div class="format-card" data-format="chatgpt">
+        <div class="icon">🤖</div>
+        <div class="name">ChatGPT</div>
+        <div class="desc">conversations.json</div>
+      </div>
+      <div class="format-card" data-format="claude">
+        <div class="icon">🟣</div>
+        <div class="name">Claude</div>
+        <div class="desc">导出的 JSON</div>
+      </div>
+      <div class="format-card" data-format="wechat">
+        <div class="icon">💬</div>
+        <div class="name">微信</div>
+        <div class="desc">聊天记录文本</div>
+      </div>
+      <div class="format-card" data-format="telegram">
+        <div class="icon">✈️</div>
+        <div class="name">Telegram</div>
+        <div class="desc">导出的 JSON</div>
+      </div>
+      <div class="format-card" data-format="text">
+        <div class="icon">📝</div>
+        <div class="name">纯文本</div>
+        <div class="desc">User: / Noe:</div>
+      </div>
+    </div>
+    
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📂</div>
+      <p>点击上传文件或拖拽到这里</p>
+      <p style="font-size:0.75rem;margin-top:8px">支持 .json, .txt 文件</p>
+      <input type="file" id="fileInput" accept=".json,.txt,.text">
+    </div>
+    
+    <textarea id="inputText" placeholder="或者直接粘贴聊天记录内容...&#10;&#10;支持的格式:&#10;• ChatGPT 导出的 conversations.json&#10;• Claude 对话 JSON&#10;• 微信聊天记录 (昵称 2024/1/15 14:30:00 格式)&#10;• 通用格式 (User: xxx / Noe: xxx)"></textarea>
+    
+    <div class="options">
+      <label>
+        <input type="checkbox" id="addToRag" checked>
+        同时添加到 RAG 记忆库
+      </label>
+      <label>
+        <input type="checkbox" id="skipDuplicates" checked>
+        跳过重复消息
+      </label>
+      <label>
+        我的名字: <input type="text" id="myName" value="Virael" placeholder="用于识别角色">
+      </label>
+    </div>
+    
+    <button class="btn" id="importBtn" disabled>解析并预览</button>
+    
+    <div id="preview" class="preview" style="display:none">
+      <h3>📋 预览 (显示前10条)</h3>
+      <div id="previewList"></div>
+    </div>
+    
+    <div id="result" style="display:none"></div>
+    
+    <div class="help">
+      <h4>💡 导出指南</h4>
+      <p><strong>ChatGPT:</strong> Settings → Data controls → Export data → 解压后找到 <code>conversations.json</code></p>
+      <p style="margin-top:8px"><strong>微信:</strong> 聊天记录 → 更多 → 导出聊天记录 (文本格式)</p>
+      <p style="margin-top:8px"><strong>Telegram:</strong> Settings → Advanced → Export → 选择 JSON 格式</p>
+    </div>
+  </div>
+  
+  <script>
+    const formats = document.querySelectorAll('.format-card');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const inputText = document.getElementById('inputText');
+    const importBtn = document.getElementById('importBtn');
+    const preview = document.getElementById('preview');
+    const previewList = document.getElementById('previewList');
+    const result = document.getElementById('result');
+    
+    let selectedFormat = 'auto';
+    let parsedMessages = [];
+    
+    // 格式选择
+    formats.forEach(card => {
+      card.addEventListener('click', () => {
+        formats.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        selectedFormat = card.dataset.format;
+      });
+    });
+    
+    // 文件上传
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
+    
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        inputText.value = e.target.result;
+        checkInput();
+      };
+      reader.readAsText(file);
+    }
+    
+    // 输入检测
+    inputText.addEventListener('input', checkInput);
+    function checkInput() {
+      importBtn.disabled = !inputText.value.trim();
+      importBtn.textContent = '解析并预览';
+      preview.style.display = 'none';
+      result.style.display = 'none';
+      parsedMessages = [];
+    }
+    
+    // 解析预览
+    importBtn.addEventListener('click', async () => {
+      if (parsedMessages.length > 0) {
+        // 已经预览过，执行导入
+        await doImport();
+        return;
+      }
+      
+      importBtn.disabled = true;
+      importBtn.textContent = '解析中...';
+      
+      try {
+        const res = await fetch('/api/import/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: inputText.value,
+            format: selectedFormat,
+            myName: document.getElementById('myName').value
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || '解析失败');
+        }
+        
+        parsedMessages = data.messages;
+        
+        // 显示预览
+        previewList.innerHTML = parsedMessages.slice(0, 10).map(m => `
+          <div class="preview-msg ${m.role}">
+            ${escapeHtml(m.content.substring(0, 200))}${m.content.length > 200 ? '...' : ''}
+            <div class="meta">${m.role} · ${new Date(m.created_at).toLocaleString('zh-CN')}</div>
+          </div>
+        `).join('');
+        
+        if (parsedMessages.length > 10) {
+          previewList.innerHTML += `<p style="text-align:center;color:#888;font-size:0.8rem">... 还有 ${parsedMessages.length - 10} 条消息</p>`;
+        }
+        
+        preview.style.display = 'block';
+        importBtn.textContent = `确认导入 ${parsedMessages.length} 条消息`;
+        importBtn.disabled = false;
+        
+        // 显示检测到的格式
+        result.innerHTML = `
+          <div class="icon">🔍</div>
+          <p>检测到格式: <strong>${data.format}</strong></p>
+          <div class="stats">
+            <div class="stat"><div class="num">${parsedMessages.length}</div><div class="label">总消息数</div></div>
+            <div class="stat"><div class="num">${parsedMessages.filter(m => m.role === 'user').length}</div><div class="label">用户消息</div></div>
+            <div class="stat"><div class="num">${parsedMessages.filter(m => m.role === 'assistant').length}</div><div class="label">助手消息</div></div>
+          </div>
+        `;
+        result.className = 'result';
+        result.style.display = 'block';
+        
+      } catch (e) {
+        result.innerHTML = `<div class="icon">❌</div><p>${e.message}</p>`;
+        result.className = 'result error';
+        result.style.display = 'block';
+        importBtn.disabled = false;
+        importBtn.textContent = '解析并预览';
+      }
+    });
+    
+    async function doImport() {
+      importBtn.disabled = true;
+      importBtn.textContent = '导入中...';
+      
+      try {
+        const res = await fetch('/api/import/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: parsedMessages,
+            addToRag: document.getElementById('addToRag').checked,
+            skipDuplicates: document.getElementById('skipDuplicates').checked
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || '导入失败');
+        }
+        
+        result.innerHTML = `
+          <div class="icon">✅</div>
+          <p>导入成功！</p>
+          <div class="stats">
+            <div class="stat"><div class="num">${data.imported}</div><div class="label">已导入</div></div>
+            <div class="stat"><div class="num">${data.skipped || 0}</div><div class="label">跳过重复</div></div>
+            ${data.ragAdded ? `<div class="stat"><div class="num">${data.ragAdded}</div><div class="label">添加到RAG</div></div>` : ''}
+          </div>
+          <p style="margin-top:12px"><a href="/chat.html" style="color:#818cf8">→ 查看对话</a></p>
+        `;
+        result.className = 'result';
+        
+        // 清空输入
+        inputText.value = '';
+        parsedMessages = [];
+        preview.style.display = 'none';
+        importBtn.textContent = '解析并预览';
+        importBtn.disabled = true;
+        
+      } catch (e) {
+        result.innerHTML = `<div class="icon">❌</div><p>${e.message}</p>`;
+        result.className = 'result error';
+        importBtn.disabled = false;
+        importBtn.textContent = `确认导入 ${parsedMessages.length} 条消息`;
+      }
+    }
+    
+    function escapeHtml(text) {
+      return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>

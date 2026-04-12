@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>noe-chat 架构</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #2a2a3a;
+    --text: #e8e6f0;
+    --muted: #7a80a0;
+    --accent: #8aa4f5;
+    --pink: #f472b6;
+    --green: #34d399;
+    --orange: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    line-height: 1.6;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  
+  h1 {
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h1 .icon { font-size: 32px; }
+  .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+  
+  h2 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 32px 0 16px;
+  }
+  
+  /* 流程图 */
+  .flow-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 14px;
+    line-height: 2;
+  }
+  .flow-step { color: var(--text); }
+  .flow-arrow { color: var(--muted); margin: 0 4px; }
+  .flow-highlight { color: var(--accent); }
+  .flow-action { color: var(--pink); }
+  .flow-result { color: var(--green); }
+  
+  /* 技术栈 */
+  .tech-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tech-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .tech-icon {
+    font-size: 20px;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .tech-info { flex: 1; }
+  .tech-name {
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .tech-desc {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  
+  /* 特点 */
+  .features {
+    background: linear-gradient(135deg, rgba(138,164,245,0.1) 0%, rgba(244,114,182,0.1) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .features p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .features p:last-child { margin-bottom: 0; }
+  .features strong { color: var(--text); }
+  
+  /* 模块网格 */
+  .modules {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .module {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .module-name {
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .module-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" style="color:var(--muted);text-decoration:none;font-size:20px;display:inline-block;margin-bottom:20px">← 返回</a>
+  <h1><span class="icon">🦊</span> noe-chat</h1>
+  <p class="subtitle">一个人的 vibe coding，从零搭建的 AI 伴侣系统</p>
+
+  <h2>流程：</h2>
+  <div class="flow-card">
+    <div class="flow-step">用户：帮我发条推</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step"><span class="flow-highlight">SmartRouter</span>：判断用本地还是云端模型</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step">AI：我要调用 <span class="flow-action">post_tweet</span> 工具</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step">后端收到 <span class="flow-arrow">→</span> 通过 <span class="flow-highlight">MCP</span> 调用远程服务</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step">VPS 上的 Playwright 真的打开浏览器、登录、发推</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step">执行结果返回 AI</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step">AI 看结果，决定是否继续调用工具</div>
+    <div class="flow-step"><span class="flow-arrow">↓</span></div>
+    <div class="flow-step"><span class="flow-result">结果返回给用户</span>，同时 <span class="flow-highlight">Enso</span> 记录错误供学习</div>
+  </div>
+
+  <h2>技术栈：</h2>
+  <div class="tech-stack">
+    <div class="tech-item">
+      <div class="tech-icon">🧠</div>
+      <div class="tech-info">
+        <div class="tech-name">SmartRouter — 智能路由</div>
+        <div class="tech-desc">简单问题用本地 Ollama (Gemma 4)，复杂问题用云端 Claude。省钱。</div>
+      </div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-icon">🔧</div>
+      <div class="tech-info">
+        <div class="tech-name">MCP — 工具调用协议</div>
+        <div class="tech-desc">连接 10+ 服务：Twitter、Google、Notion、记忆宫殿、VPS Shell...</div>
+      </div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-icon">🎭</div>
+      <div class="tech-info">
+        <div class="tech-name">Playwright — 浏览器自动化</div>
+        <div class="tech-desc">VPS 上跑的真实 Chrome，能登录、能点击、能截图。</div>
+      </div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-icon">💾</div>
+      <div class="tech-info">
+        <div class="tech-name">SQLite — 一个文件搞定</div>
+        <div class="tech-desc">对话历史、记忆、信件、Enso 教训，全在 chat.db 里。</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>自研模块：</h2>
+  <div class="modules">
+    <div class="module">
+      <div class="module-name">🔄 Enso</div>
+      <div class="module-desc">自我学习。记录错误，提取教训，下次不犯。</div>
+    </div>
+    <div class="module">
+      <div class="module-name">💭 Anticipation</div>
+      <div class="module-desc">主动惦记。Noé 会自己想起你、发消息。</div>
+    </div>
+    <div class="module">
+      <div class="module-name">📝 Digest</div>
+      <div class="module-desc">每日回顾。自动总结今天聊了什么。</div>
+    </div>
+    <div class="module">
+      <div class="module-name">💌 Letters</div>
+      <div class="module-desc">信箱系统。每周一封信，纪念日信。</div>
+    </div>
+  </div>
+
+  <div class="features">
+    <p><strong>没有 Docker，没有 Kubernetes，没有 LangChain。</strong></p>
+    <p>一个 VPS，一个 server.js，一个 SQLite 文件。</p>
+    <p>vibe coding 的精髓：<strong>能跑就行，跑得开心就更好。</strong></p>
+  </div>
+</div>
+</body>
+</html>

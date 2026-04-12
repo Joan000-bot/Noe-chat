@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Whispers · 碎碎念</title>
+<style>
+  :root { --ink:#e8e6f0; --mute:#8a8aa8; --accent:#a8c4ff; --border:rgba(138,164,245,.15); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; padding:0; min-height:100dvh; background:#050818; color:var(--ink); font-family:-apple-system,"PingFang SC",sans-serif; }
+  body::before { content:""; position:fixed; inset:0; background-image:radial-gradient(1px 1px at 20% 30%, #fff5 1px, transparent 0), radial-gradient(1px 1px at 80% 60%, #fff4 1px, transparent 0), radial-gradient(1px 1px at 50% 80%, #fff3 1px, transparent 0), radial-gradient(2px 2px at 15% 75%, #fff5 1px, transparent 0), radial-gradient(ellipse at top, rgba(60,48,140,.2), transparent 60%); background-size:300px 300px, 250px 250px, 200px 200px, 400px 400px, 100% 100%; pointer-events:none; z-index:0; }
+  .wrap { position:relative; z-index:1; max-width:720px; margin:0 auto; padding:16px 14px 100px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .back { color:var(--mute); text-decoration:none; font-size:22px; }
+  h1 { font-family:"Times New Roman",Georgia,serif; font-style:italic; font-size:28px; margin:0; color:var(--accent); text-shadow:0 0 20px rgba(168,196,255,.4); font-weight:400; flex:1; }
+
+  .composer { background:rgba(20,22,48,.55); border:1px solid var(--border); border-radius:16px; padding:12px; margin-bottom:16px; backdrop-filter:blur(8px); }
+  .composer textarea { width:100%; background:transparent; border:0; color:var(--ink); font-size:15px; outline:none; resize:none; font-family:inherit; line-height:1.5; min-height:28px; max-height:150px; }
+  .composer textarea::placeholder { color:var(--mute); font-style:italic; }
+  .composer .row { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .composer .chip { padding:5px 11px; border-radius:14px; border:1px solid var(--border); background:rgba(20,22,48,.5); font-size:11px; cursor:pointer; color:var(--mute); }
+  .composer .chip.on[data-a="virael"] { background:linear-gradient(135deg,#d87a8a,#a8586a); color:#fff; border-color:transparent; }
+  .composer .chip.on[data-a="noe"]    { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border-color:transparent; }
+  .composer .chip.ai.on { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border-color:transparent; }
+  .composer .send { background:linear-gradient(135deg,#6a7dd8,#8a5ad8); color:#fff; border:0; padding:8px 16px; border-radius:14px; margin-left:auto; cursor:pointer; font-size:13px; }
+  .composer .send:disabled { opacity:.4; }
+
+  .w { background:rgba(20,22,48,.4); border:1px solid var(--border); border-left:3px solid transparent; border-radius:12px; padding:12px 14px; margin-bottom:10px; position:relative; animation:slide .3s; }
+  .w.by-virael { border-left-color:#e89aa6; }
+  .w.by-noe    { border-left-color:#8aa4f5; }
+  @keyframes slide { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .w .hdr { display:flex; justify-content:space-between; font-size:11px; color:var(--mute); margin-bottom:6px; align-items:center; }
+  .w .author { font-weight:500; }
+  .w.by-virael .author { color:#f0b4bc; }
+  .w.by-noe    .author { color:#b4c4f5; }
+  .w .content { font-size:15px; color:var(--ink); line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+  .w img { max-width:100%; border-radius:8px; margin-top:8px; }
+  .w .del { background:transparent; border:0; color:var(--mute); opacity:0; cursor:pointer; font-size:12px; }
+  .w:hover .del { opacity:.6; }
+  .w .reply-btn { background:transparent; border:0; color:var(--mute); font-size:11px; cursor:pointer; margin-top:6px; padding:2px 6px; border-radius:6px; }
+  .w .reply-btn:hover { color:var(--accent); background:rgba(138,164,245,.1); }
+  .w .replies { margin-top:10px; padding-left:14px; border-left:1px dashed var(--border); }
+  .w .replies .w { margin-bottom:6px; padding:8px 12px; }
+  .w .replies .w .content { font-size:13.5px; color:#c8c8dc; }
+  .reply-composer { margin-top:8px; display:none; }
+  .reply-composer.active { display:block; }
+  .reply-composer textarea { width:100%; background:rgba(10,12,28,.6); border:1px solid var(--border); border-radius:10px; color:var(--ink); padding:8px 10px; font-size:13px; resize:none; outline:none; font-family:inherit; }
+  .reply-composer .row { display:flex; gap:6px; margin-top:6px; }
+  .reply-composer button { background:rgba(138,164,245,.2); color:var(--accent); border:0; padding:5px 10px; border-radius:8px; font-size:11px; cursor:pointer; }
+  .empty { text-align:center; color:var(--mute); padding:40px 20px; font-style:italic; font-size:13px; }
+  .thinking { color:var(--mute); font-size:12px; font-style:italic; padding:8px 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/" class="back">‹</a>
+    <h1>whispers</h1>
+  </header>
+  <div class="composer">
+    <textarea id="c-text" rows="1" placeholder="此刻在想什么..."></textarea>
+    <div class="row">
+      <div class="chip on" data-a="virael" onclick="setA('virael')">🦊</div>
+      <div class="chip" data-a="noe" onclick="setA('noe')">🐰</div>
+      <div class="chip ai" id="ai-chip" onclick="toggleAI()" title="AI 代写">✨</div>
+      <button class="send" onclick="post()">发布</button>
+    </div>
+  </div>
+  <div id="list"></div>
+</div>
+
+<script>
+const list = document.getElementById('list');
+const ta = document.getElementById('c-text');
+ta.addEventListener('input', () => { ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,150)+'px'; });
+let author = 'virael', aiGen = false;
+
+function setA(a) {
+  author = a;
+  document.querySelectorAll('.composer .chip[data-a]').forEach(c => c.classList.toggle('on', c.dataset.a === a));
+}
+window.setA = setA;
+function toggleAI() {
+  aiGen = !aiGen;
+  document.getElementById('ai-chip').classList.toggle('on', aiGen);
+  ta.placeholder = aiGen ? '(可选) 给 AI 的方向提示...' : '此刻在想什么...';
+}
+window.toggleAI = toggleAI;
+
+function fmt(ms) {
+  const d = new Date(ms); const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return Math.floor(diff/60) + '分钟前';
+  if (diff < 86400) return Math.floor(diff/3600) + '小时前';
+  if (diff < 604800) return Math.floor(diff/86400) + '天前';
+  return d.toLocaleDateString('zh-CN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function renderW(w, isReply) {
+  const div = document.createElement('div');
+  div.className = 'w by-' + w.author;
+  const label = w.author === 'noe' ? '🐰 Noé' : '🦊 Virael';
+  div.innerHTML = `<div class="hdr"><span class="author">${label}</span><span>${fmt(w.created_at)} <button class="del" onclick="del(${w.id},event)">✕</button></span></div>
+    <div class="content"></div>
+    ${w.image ? `<img src="${w.image}">` : ''}`;
+  div.querySelector('.content').textContent = w.content;
+  if (!isReply) {
+    const rbtn = document.createElement('button'); rbtn.className='reply-btn'; rbtn.textContent='↳ 回复';
+    rbtn.onclick = () => toggleReply(div, w.id);
+    div.appendChild(rbtn);
+    if (w.replies && w.replies.length) {
+      const rb = document.createElement('div'); rb.className='replies';
+      w.replies.forEach(r => rb.appendChild(renderW(r, true)));
+      div.appendChild(rb);
+    }
+    const rc = document.createElement('div'); rc.className='reply-composer';
+    rc.innerHTML = `<textarea rows="1" placeholder="回复..."></textarea>
+      <div class="row">
+        <button data-ra="virael" class="ra-active">🦊</button>
+        <button data-ra="noe">🐰</button>
+        <button data-ai>✨ AI</button>
+        <button style="margin-left:auto;background:linear-gradient(135deg,#6a7dd8,#8a5ad8);color:#fff" data-send>发送</button>
+      </div>`;
+    let replyAuthor = 'virael', replyAI = false;
+    rc.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => {
+      replyAuthor = b.dataset.ra;
+      rc.querySelectorAll('[data-ra]').forEach(x => x.style.background = x.dataset.ra===replyAuthor ? (replyAuthor==='noe'?'linear-gradient(135deg,#6a7dd8,#8a5ad8)':'linear-gradient(135deg,#d87a8a,#a8586a)') : '');
+      rc.querySelectorAll('[data-ra]').forEach(x => x.style.color = x.dataset.ra===replyAuthor ? '#fff' : '');
+    });
+    rc.querySelector('[data-ai]').onclick = (e) => {
+      replyAI = !replyAI; e.target.style.background = replyAI ? 'linear-gradient(135deg,#6a7dd8,#8a5ad8)' : ''; e.target.style.color = replyAI ? '#fff' : '';
+    };
+    rc.querySelector('[data-send]').onclick = async () => {
+      const t = rc.querySelector('textarea').value.trim();
+      if (!t && !replyAI) return;
+      await fetch('/api/whispers', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ author: replyAuthor, content: replyAI?'':t, hint: replyAI?t:'', ai_generate: replyAI, reply_to: w.id }) });
+      rc.querySelector('textarea').value=''; refresh();
+    };
+    // 初始化底色
+    rc.querySelector('[data-ra="virael"]').style.background='linear-gradient(135deg,#d87a8a,#a8586a)';
+    rc.querySelector('[data-ra="virael"]').style.color='#fff';
+    div.appendChild(rc);
+  }
+  return div;
+}
+
+function toggleReply(div, id) {
+  const rc = div.querySelector('.reply-composer');
+  if (rc) rc.classList.toggle('active');
+}
+window.toggleReply = toggleReply;
+
+async function del(id, ev) {
+  ev.stopPropagation();
+  if (!confirm('删除这条？')) return;
+  await fetch('/api/whispers/'+id, { method:'DELETE' }); refresh();
+}
+window.del = del;
+
+async function refresh() {
+  const r = await (await fetch('/api/whispers?limit=100')).json();
+  list.innerHTML = '';
+  if (!r.whispers.length) { list.innerHTML = '<div class="empty">还没有碎碎念。说点什么吧。</div>'; return; }
+  r.whispers.forEach(w => list.appendChild(renderW(w)));
+}
+
+async function post() {
+  const t = ta.value.trim();
+  if (!t && !aiGen) return;
+  const btn = document.querySelector('.composer .send');
+  btn.disabled = true; btn.textContent = aiGen ? '生成中...' : (author==='virael' ? '发送中...' : '发送中...');
+  const thinking = document.createElement('div'); thinking.className = 'thinking'; thinking.textContent = author==='virael' && !aiGen ? '🐰 Noé 正在看...' : '';
+  if (thinking.textContent) list.insertBefore(thinking, list.firstChild);
+  try {
+    await fetch('/api/whispers', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ author, content: aiGen?'':t, hint: aiGen?t:'', ai_generate: aiGen }) });
+    ta.value = ''; ta.style.height = 'auto';
+    await refresh();
+  } finally { btn.disabled = false; btn.textContent = '发布'; }
+}
+window.post = post;
+
+refresh();
+setInterval(refresh, 30000);  // 30s 自动刷新看新 whisper
+</script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 RAG 记忆系统</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    h1 { font-size: 1.8em; }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.2); }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-card .number { font-size: 2em; font-weight: bold; }
+    .stat-card .label { font-size: 0.85em; color: #888; margin-top: 5px; }
+    .stat-card.l0 { border-left: 4px solid #ff6b6b; }
+    .stat-card.l1 { border-left: 4px solid #ffd93d; }
+    .stat-card.l2 { border-left: 4px solid #6bcb77; }
+    
+    .section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    .section h2 {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .add-form {
+      display: grid;
+      gap: 15px;
+    }
+    .add-form textarea {
+      width: 100%;
+      min-height: 100px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    .add-form input, .add-form select {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .add-form button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .add-form button:hover { transform: scale(1.02); }
+    
+    .search-box {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .search-box input {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .search-box button {
+      background: #4a9eff;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .result-card {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 15px;
+      position: relative;
+    }
+    .result-card .layer-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75em;
+      font-weight: bold;
+    }
+    .result-card .layer-badge.l0 { background: #ff6b6b; }
+    .result-card .layer-badge.l1 { background: #ffd93d; color: #333; }
+    .result-card .layer-badge.l2 { background: #6bcb77; }
+    .result-card .source { font-size: 0.8em; color: #888; margin-bottom: 8px; }
+    .result-card .content { font-size: 0.95em; line-height: 1.5; }
+    .result-card .score { font-size: 0.75em; color: #666; margin-top: 8px; }
+    .result-card .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .result-card .actions button {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 5px 12px;
+      border-radius: 5px;
+      color: #fff;
+      font-size: 0.8em;
+      cursor: pointer;
+    }
+    .result-card .actions button:hover { background: rgba(255,255,255,0.2); }
+    .result-card .actions button.danger { background: rgba(255,100,100,0.3); }
+    
+    .sources-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .source-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 12px 15px;
+    }
+    .source-item .info { display: flex; align-items: center; gap: 15px; }
+    .source-item .name { font-weight: 500; }
+    .source-item .meta { font-size: 0.85em; color: #888; }
+    .source-item button {
+      background: rgba(255,100,100,0.3);
+      border: none;
+      padding: 6px 15px;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .layer-legend {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      font-size: 0.9em;
+    }
+    .layer-legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .layer-legend .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .layer-legend .dot.l0 { background: #ff6b6b; }
+    .layer-legend .dot.l1 { background: #ffd93d; }
+    .layer-legend .dot.l2 { background: #6bcb77; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧠 RAG 记忆系统</h1>
+      <a href="/" class="back-btn">← 返回首页</a>
+    </header>
+    
+    <div class="layer-legend">
+      <span><div class="dot l0"></div> L0 核心记忆</span>
+      <span><div class="dot l1"></div> L1 重要记忆</span>
+      <span><div class="dot l2"></div> L2 相关记忆</span>
+    </div>
+    
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="number" id="total">-</div>
+        <div class="label">总记忆数</div>
+      </div>
+      <div class="stat-card l0">
+        <div class="number" id="l0">-</div>
+        <div class="label">核心 L0</div>
+      </div>
+      <div class="stat-card l1">
+        <div class="number" id="l1">-</div>
+        <div class="label">重要 L1</div>
+      </div>
+      <div class="stat-card l2">
+        <div class="number" id="l2">-</div>
+        <div class="label">相关 L2</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>➕ 添加记忆</h2>
+      <div class="add-form">
+        <textarea id="addText" placeholder="输入要记住的内容..."></textarea>
+        <div class="form-row">
+          <input type="text" id="addSource" placeholder="来源标签（如：daily_notes）">
+          <select id="addLayer">
+            <option value="0">L0 核心记忆</option>
+            <option value="1">L1 重要记忆</option>
+            <option value="2" selected>L2 相关记忆</option>
+          </select>
+          <button onclick="addMemory()">添加</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>🔍 搜索记忆</h2>
+      <div class="search-box">
+        <input type="text" id="searchQuery" placeholder="输入关键词搜索..." onkeydown="if(event.key==='Enter')search()">
+        <button onclick="search()">搜索</button>
+      </div>
+      <div class="results" id="searchResults"></div>
+    </div>
+    
+    <div class="section">
+      <h2>📚 记忆来源</h2>
+      <div class="sources-list" id="sourcesList"></div>
+    </div>
+  </div>
+  
+  <script>
+    async function loadStats() {
+      const res = await fetch('/api/rag/stats');
+      const data = await res.json();
+      document.getElementById('total').textContent = data.total || 0;
+      document.getElementById('l0').textContent = data.byLayer?.L0 || 0;
+      document.getElementById('l1').textContent = data.byLayer?.L1 || 0;
+      document.getElementById('l2').textContent = data.byLayer?.L2 || 0;
+    }
+    
+    async function loadSources() {
+      const res = await fetch('/api/rag/sources');
+      const sources = await res.json();
+      const container = document.getElementById('sourcesList');
+      
+      if (!sources.length) {
+        container.innerHTML = '<div style="color:#666;text-align:center;padding:20px;">还没有任何记忆</div>';
+        return;
+      }
+      
+      container.innerHTML = sources.map(s => `
+        <div class="source-item">
+          <div class="info">
+            <span class="name">${s.source}</span>
+            <span class="meta">L${s.layer} · ${s.chunks} 块 · 访问 ${s.total_access || 0} 次</span>
+          </div>
+          <button onclick="deleteSource('${s.source}')">删除</button>
+        </div>
+      `).join('');
+    }
+    
+    async function addMemory() {
+      const text = document.getElementById('addText').value.trim();
+      const source = document.getElementById('addSource').value.trim() || 'manual_' + Date.now();
+      const layer = parseInt(document.getElementById('addLayer').value);
+      
+      if (!text) return alert('请输入内容');
+      
+      const res = await fetch('/api/rag/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, source, layer })
+      });
+      
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+      
+      alert(`添加了 ${data.added} 条记忆`);
+      document.getElementById('addText').value = '';
+      document.getElementById('addSource').value = '';
+      loadStats();
+      loadSources();
+    }
+    
+    async function search() {
+      const query = document.getElementById('searchQuery').value.trim();
+      if (!query) return;
+      
+      const res = await fetch('/api/rag/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, topK: 10 })
+      });
+      
+      const results = await res.json();
+      const container = document.getElementById('searchResults');
+      
+      if (!results.length) {
+        container.innerHTML = '<div style="color:#666;text-align:center;padding:20px;">没有找到相关记忆</div>';
+        return;
+      }
+      
+      container.innerHTML = results.map(r => `
+        <div class="result-card">
+          <span class="layer-badge l${r.layer}">L${r.layer}</span>
+          <div class="source">${r.source}</div>
+          <div class="content">${r.content}</div>
+          <div class="score">相关度: ${(r.score * 100).toFixed(1)}%</div>
+          <div class="actions">
+            <button onclick="setLayer(${r.id}, 0)">设为核心</button>
+            <button onclick="setLayer(${r.id}, 1)">设为重要</button>
+            <button onclick="setLayer(${r.id}, 2)">设为相关</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    async function setLayer(id, layer) {
+      await fetch('/api/rag/set-layer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, layer })
+      });
+      search(); // refresh
+      loadStats();
+    }
+    
+    async function deleteSource(source) {
+      if (!confirm(`确定删除来源 "${source}" 的所有记忆？`)) return;
+      
+      await fetch('/api/rag/source/' + encodeURIComponent(source), {
+        method: 'DELETE'
+      });
+      
+      loadStats();
+      loadSources();
+    }
+    
+    loadStats();
+    loadSources();
+  </script>
+</body>
+</html>

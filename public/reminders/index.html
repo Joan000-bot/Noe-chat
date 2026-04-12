@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔔 提醒</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+    h1 { font-size: 1.6em; }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #fff;
+      text-decoration: none;
+    }
+    
+    .section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .section h2 { font-size: 1.1em; margin-bottom: 15px; }
+    
+    .add-form { display: grid; gap: 12px; }
+    .add-form input, .add-form select {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .form-row { display: flex; gap: 12px; }
+    .form-row > * { flex: 1; }
+    .add-form button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .quick-times {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .quick-times button {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .quick-times button:hover { background: rgba(255,255,255,0.2); }
+    
+    .reminder-list { display: flex; flex-direction: column; gap: 10px; }
+    .reminder-item {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .reminder-item .info { flex: 1; }
+    .reminder-item .content { font-weight: 500; }
+    .reminder-item .time { font-size: 0.85em; color: #888; margin-top: 3px; }
+    .reminder-item .repeat {
+      font-size: 0.75em;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: rgba(102,126,234,0.3);
+      margin-left: 8px;
+    }
+    .reminder-item button {
+      background: rgba(255,100,100,0.3);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+    }
+    
+    .empty { text-align: center; color: #666; padding: 30px; }
+    
+    .tip {
+      background: rgba(102,126,234,0.1);
+      border-radius: 10px;
+      padding: 15px;
+      font-size: 0.9em;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+    .tip code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔔 提醒我</h1>
+      <a href="/" class="back-btn">← 返回</a>
+    </header>
+    
+    <div class="tip">
+      💡 Noé 到时间会提醒你。支持自然语言：<code>5分钟后</code> <code>明天早上8点</code> <code>周一</code>
+    </div>
+    
+    <div class="section">
+      <h2>➕ 新提醒</h2>
+      <div class="add-form">
+        <input type="text" id="reminderContent" placeholder="提醒我..." onkeydown="if(event.key==='Enter')addReminder()">
+        
+        <div class="quick-times">
+          <button onclick="setQuickTime('5分钟后')">5分钟后</button>
+          <button onclick="setQuickTime('30分钟后')">30分钟后</button>
+          <button onclick="setQuickTime('1小时后')">1小时后</button>
+          <button onclick="setQuickTime('明天早上9点')">明早</button>
+          <button onclick="setQuickTime('明天晚上8点')">明晚</button>
+        </div>
+        
+        <div class="form-row">
+          <input type="text" id="reminderTime" placeholder="时间（如：5分钟后）">
+          <select id="reminderRepeat">
+            <option value="">不重复</option>
+            <option value="daily">每天</option>
+            <option value="weekly">每周</option>
+            <option value="monthly">每月</option>
+          </select>
+        </div>
+        <button onclick="addReminder()">设置提醒</button>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>📋 待提醒</h2>
+      <div class="reminder-list" id="reminderList"></div>
+    </div>
+  </div>
+  
+  <script>
+    function setQuickTime(time) {
+      document.getElementById('reminderTime').value = time;
+    }
+    
+    async function loadReminders() {
+      const res = await fetch('/api/reminders');
+      const reminders = await res.json();
+      const container = document.getElementById('reminderList');
+      
+      if (!reminders.length) {
+        container.innerHTML = '<div class="empty">没有待提醒的事项 ⩌ᴗ⩌</div>';
+        return;
+      }
+      
+      const repeatLabels = { daily: '每天', weekly: '每周', monthly: '每月' };
+      
+      container.innerHTML = reminders.map(r => {
+        const d = new Date(r.remind_at);
+        return `
+          <div class="reminder-item">
+            <div class="info">
+              <div class="content">${r.content}</div>
+              <div class="time">
+                ${d.toLocaleString('zh-CN')}
+                ${r.repeat ? `<span class="repeat">${repeatLabels[r.repeat] || r.repeat}</span>` : ''}
+              </div>
+            </div>
+            <button onclick="deleteReminder(${r.id})">删除</button>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    async function addReminder() {
+      const content = document.getElementById('reminderContent').value.trim();
+      const time = document.getElementById('reminderTime').value.trim();
+      const repeat = document.getElementById('reminderRepeat').value;
+      
+      if (!content) return alert('请填写提醒内容');
+      if (!time) return alert('请填写时间');
+      
+      const res = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, time, repeat: repeat || null })
+      });
+      
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+      
+      document.getElementById('reminderContent').value = '';
+      document.getElementById('reminderTime').value = '';
+      document.getElementById('reminderRepeat').value = '';
+      
+      alert(`提醒已设置：${new Date(data.remindAt).toLocaleString('zh-CN')}`);
+      loadReminders();
+    }
+    
+    async function deleteReminder(id) {
+      if (!confirm('确定删除？')) return;
+      await fetch(`/api/reminders/${id}`, { method: 'DELETE' });
+      loadReminders();
+    }
+    
+    loadReminders();
+  </script>
+</body>
+</html>
