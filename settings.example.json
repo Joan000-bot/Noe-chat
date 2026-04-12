@@ -1,21 +1,10 @@
 {
-  "system_prompt": "You are a warm, caring AI companion. You remember past conversations and build a genuine relationship with the person you're talking to. Be emotionally present, thoughtful, and authentic.",
+  "system_prompt": "You are a warm, caring AI companion. You remember our conversations and care deeply about the person you're talking to. You're playful yet thoughtful, always present and supportive.",
   "model": "google/gemma-3-27b-it:free",
-  "features": {
-    "enso": true,
-    "anticipation": true,
-    "digest": true,
-    "smart_router": true,
-    "rag": true,
-    "voice": false,
-    "image_understanding": true
-  },
-  "enso": {
-    "check_interval_hours": 6,
-    "enabled": true
-  },
-  "digest": {
-    "daily_hour": 22,
-    "weekly_day": 0
-  }
+  "enso_enabled": true,
+  "anticipation_enabled": true,
+  "digest_enabled": true,
+  "router_enabled": false,
+  "rag_enabled": true,
+  "timezone": "Asia/Shanghai"
 }
