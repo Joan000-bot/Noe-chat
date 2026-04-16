@@ -288,12 +288,40 @@ function initModules() {
 setTimeout(() => initModules(), 2000);
 
 
+// ===== Basic Auth (启用条件: 设置了 ACCESS_PASSWORD 环境变量) =====
+// 用于保护私人部署。公开部署时不设此变量，fork 出去的人自己决定是否启用。
+const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || '';
+const ACCESS_USER = process.env.ACCESS_USER || 'noe';
+if (ACCESS_PASSWORD) {
+  app.use((req, res, next) => {
+    if (req.path === '/health') return next();
+    const h = req.headers.authorization || '';
+    if (!h.startsWith('Basic ')) {
+      res.set('WWW-Authenticate', 'Basic realm="noe-chat"');
+      return res.status(401).send('Authentication required');
+    }
+    try {
+      const [u, p] = Buffer.from(h.slice(6), 'base64').toString().split(':');
+      if (u !== ACCESS_USER || p !== ACCESS_PASSWORD) {
+        res.set('WWW-Authenticate', 'Basic realm="noe-chat"');
+        return res.status(401).send('Invalid credentials');
+      }
+    } catch { return res.status(401).send('Invalid credentials'); }
+    next();
+  });
+  console.log('[auth] Basic Auth enabled');
+} else {
+  console.log('[auth] Open mode — set ACCESS_PASSWORD env var to enable Basic Auth');
+}
+
+app.get('/health', (req, res) => res.json({ ok: true }));
+
 app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 
 // 调用AI: 有图 → ai-router(llava), 无图 → OpenRouter直连
-async function callAI({ message, image, model, history, effort }) {
+async function callAI({ message, image, model, history, effort, apiKey }) {
   // 有图片走ai-router（本地llava识图 + 复杂时自动转云端）
   if (image) {
     const body = { message: message || '这是什么？', image_base64: image, cloud_model: model };
@@ -303,7 +331,9 @@ async function callAI({ message, image, model, history, effort }) {
     return { reply: j.response, model_used: j.model_used };
   }
   // 无图 → 直连OpenRouter（含MCP tool loop）
-  if (!S.openrouter_key) throw new Error('请先在设置里填 OpenRouter API Key');
+  // Key 优先级: 1) 客户端传入 2) 服务端 key (仅在启用 Basic Auth 时)
+  const orKey = apiKey || (ACCESS_PASSWORD ? S.openrouter_key : '');
+  if (!orKey) throw new Error('请先在设置里填你自己的 OpenRouter API Key');
   const messages = [];
   if (S.system_prompt) messages.push({ role:'system', content: S.system_prompt });
   // 注入 RAG 分层记忆
@@ -345,7 +375,7 @@ async function callAI({ message, image, model, history, effort }) {
     if (tools.length) body.tools = tools;
     const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method:'POST',
-      headers:{ 'Authorization':`Bearer ${S.openrouter_key}`, 'Content-Type':'application/json',
+      headers:{ 'Authorization':`Bearer ${orKey}`, 'Content-Type':'application/json',
                 'HTTP-Referer':'https://vps2.viraelandnoeforever.com', 'X-Title':'Noé Chat' },
       body: JSON.stringify(body)
     });
@@ -451,11 +481,12 @@ app.post('/api/chat', async (req, res) => {
   const { message, image, model } = req.body;
   if ((!message || !message.trim()) && !image) return res.status(400).json({ error:'empty' });
   const useModel = model || S.default_model;
+  const apiKey = (req.headers['x-or-key'] || req.body.apiKey || '').trim();
   try {
     insertMsg.run('user', message || '', Date.now(), 0, image || null, null, null, null);
     const history = image ? [] : getAllForContext.all(20); // 最近20条做context
     const effort = req.body.effort || S.reasoning_effort || 'off';
-    const { reply, model_used, reasoning, tool_calls } = await callAI({ message, image, model: useModel, history, effort });
+    const { reply, model_used, reasoning, tool_calls } = await callAI({ message, image, model: useModel, history, effort, apiKey });
     const tc_json = tool_calls && tool_calls.length ? JSON.stringify(tool_calls) : null;
     insertMsg.run('assistant', reply, Date.now(), 0, null, model_used, reasoning, tc_json);
     res.json({ reply, model: model_used, reasoning, tool_calls });
@@ -492,7 +523,8 @@ app.get('/api/settings', (req, res) => {
   });
 });
 app.post('/api/settings', (req, res) => {
-  const allowed = ['openrouter_key','elevenlabs_key','elevenlabs_voice_id','elevenlabs_agent_id','default_model','checkin_hours','system_prompt','reasoning_effort','mcp_servers','tavily_key','tavily_enabled','groq_key','aggregate_enabled','aggregate_delay','anniversaries','anniversary_hour','emotional_autosave','telegram_token'];
+  // 注: openrouter_key 从 allowed 移除 — key 只经 header 传递, 存在用户 localStorage, 从不进入服务端
+  const allowed = ['elevenlabs_key','elevenlabs_voice_id','elevenlabs_agent_id','default_model','checkin_hours','system_prompt','reasoning_effort','mcp_servers','tavily_key','tavily_enabled','groq_key','aggregate_enabled','aggregate_delay','anniversaries','anniversary_hour','emotional_autosave','telegram_token'];
   for (const k of allowed) if (k in req.body && req.body[k] !== '') S[k] = req.body[k];
   if ('checkin_hours' in req.body) S.checkin_hours = Number(req.body.checkin_hours) || 4;
   saveSettings(S);

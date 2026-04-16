@@ -619,7 +619,7 @@ async function flushMessages() {
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-OR-Key': localStorage.getItem('or_key') || '' },
       body: JSON.stringify({ message: combinedText, image: lastImage })
     });
     const j = await r.json();
@@ -676,7 +676,7 @@ async function doSendDirect(v, img) {
   typing.innerHTML = '<span></span><span></span><span></span>';
   log.appendChild(typing); log.scrollTop = log.scrollHeight;
   try {
-    const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: v, image: img }) });
+    const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json', 'X-OR-Key': localStorage.getItem('or_key') || ''}, body: JSON.stringify({ message: v, image: img }) });
     const j = await r.json();
     typing.remove();
     if (j.reply) render({ role:'assistant', content:j.reply, model:j.model, reasoning:j.reasoning, tool_calls:j.tool_calls, created_at:Date.now(), auto:0 });
@@ -778,7 +778,9 @@ let allModels = [];
 async function openSettings() {
   document.getElementById('modal').classList.add('active');
   const cfg = await (await fetch('/api/settings')).json();
-  document.getElementById('or-key-hint').textContent = cfg.openrouter_key_set ? '已配置: '+cfg.openrouter_key_masked : '未配置';
+  const hasKey = !!localStorage.getItem('or_key');
+  const maskedKey = hasKey ? (localStorage.getItem('or_key').slice(0,6)+'...'+localStorage.getItem('or_key').slice(-4)) : '';
+  document.getElementById('or-key-hint').textContent = hasKey ? ('已配置（本地）: '+maskedKey+'  ·  只存在你的浏览器，从不上传服务器') : '未配置';
   document.getElementById('set-or-key').value = '';
   document.getElementById('set-prompt').value = cfg.system_prompt || '';
   document.getElementById('set-checkin').value = cfg.checkin_hours || 4;
@@ -831,8 +833,10 @@ function filterModels() { renderModelList(document.getElementById('set-model').v
 window.filterModels = filterModels;
 
 async function saveSettings() {
+  // OpenRouter key 只存浏览器 localStorage, 永不发送到服务端（架构性隔离）
+  const orKeyInput = document.getElementById('set-or-key').value.trim();
+  if (orKeyInput) localStorage.setItem('or_key', orKeyInput);
   const body = {
-    openrouter_key: document.getElementById('set-or-key').value.trim(),
     default_model: document.getElementById('set-model').value,
     system_prompt: document.getElementById('set-prompt').value,
     checkin_hours: document.getElementById('set-checkin').value,
